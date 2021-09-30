@@ -1,9 +1,8 @@
 
 # a massive hack to see if we're testing, in which case we use different settings
-import sys
-
 import json
 import os
+import sys
 
 TESTING = 'test' in sys.argv
 
@@ -16,7 +15,7 @@ def get_from_env(var, default):
 
 DEBUG = (get_from_env('DEBUG', '1') == '1')
 
-# add admins of the form: 
+# add admins of the form:
 #    ('Ben Adida', 'ben@adida.net'),
 # if you want to be emailed about errors.
 ADMINS = (
@@ -38,12 +37,17 @@ SHOW_USER_INFO = (get_from_env('SHOW_USER_INFO', '1') == '1')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'helios',
+        'NAME': get_from_env("DB_DATABASE","helios"),
+        "USER": get_from_env("DB_USER","helios"),
+        "PASSWORD": get_from_env("DB_PASSWORD","123changeme"),
+        "port": get_from_env("DB_PORT",5432),
+        "HOST": get_from_env("DB_HOST","localhost"),
         'CONN_MAX_AGE': 600,
     },
 }
 
 # override if we have an env variable
+
 if get_from_env('DATABASE_URL', None):
     import dj_database_url
     DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
@@ -90,6 +94,7 @@ SECRET_KEY = get_from_env('SECRET_KEY', 'replaceme')
 ALLOWED_HOSTS = get_from_env('ALLOWED_HOSTS', 'localhost').split(",")
 
 # Secure Stuff
+
 if get_from_env('SSL', '0') == '1':
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -101,6 +106,7 @@ SESSION_COOKIE_HTTPONLY = True
 
 # let's go with one year because that's the way to do it now
 STS = False
+
 if get_from_env('HSTS', '0') == '1':
     STS = True
     # we're using our own custom middleware now
@@ -123,6 +129,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
 ROOT_URLCONF = 'urls'
@@ -141,7 +148,7 @@ TEMPLATES = [
             # os.path.join(ROOT_PATH, 'server_ui/templates'),  # covered by APP_DIRS:True
         ],
         'OPTIONS': {
-            'debug': DEBUG
+            'debug': DEBUG,
         }
     },
 ]
@@ -260,6 +267,7 @@ EMAIL_USE_TLS = (get_from_env('EMAIL_USE_TLS', '0') == '1')
 # to use AWS Simple Email Service
 # in which case environment should contain
 # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
 if get_from_env('EMAIL_USE_AWS', '0') == '1':
     EMAIL_BACKEND = 'django_ses.SESBackend'
 
@@ -273,16 +281,18 @@ logging.basicConfig(
 
 # set up celery
 CELERY_BROKER_URL = get_from_env('CELERY_BROKER_URL', 'amqp://localhost')
+
 if TESTING:
     CELERY_TASK_ALWAYS_EAGER = True
 #database_url = DATABASES['default']
 
 # Rollbar Error Logging
 ROLLBAR_ACCESS_TOKEN = get_from_env('ROLLBAR_ACCESS_TOKEN', None)
+
 if ROLLBAR_ACCESS_TOKEN:
   print("setting up rollbar")
   MIDDLEWARE += ['rollbar.contrib.django.middleware.RollbarNotifierMiddleware',]
   ROLLBAR = {
     'access_token': ROLLBAR_ACCESS_TOKEN,
-    'environment': 'development' if DEBUG else 'production',  
+    'environment': 'development' if DEBUG else 'production',
   }
